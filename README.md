@@ -7,16 +7,16 @@
 
 ## 概述
 
-本技能用于对**化工建设项目安全设施设计专篇**（含中试专篇）进行专家级评审诊断,核心立场:
+本技能用于对**化工建设项目安全设施设计专篇**（含中试专篇）进行专家级评审诊断，核心立场：
 
-> 程序/文本/编辑核查只是秘书级校稿;**专家级审查是"章节完整性＋条款级适用性＋数据闭环核验＋计算复核＋危险辨识-设施映射＋工艺纵深"的工程师级审查**。
+> 程序、文本、编辑方面的核查只是秘书级校稿；**专家级审查是工程师级的审查**，包括六个维度：章节完整性核查（逐章对照标准要求）、条款级适用性判断（这本标准适不适用这个项目）、数据闭环核验（四处数据是否同源一致）、关键计算独立复核（事故水池、消防水量等要重算）、危险辨识与设施映射（每项危险都要有对应设施并落到具体位号）、工艺纵深（重点监管工艺全流程自动化、SIL定级验证）。
 
-输出 A/B/C 分级缺陷清单与通过性三档结论,支持:
-- ✅ 专篇诊断、审查、校稿
-- ✅ 专家意见落实核查
-- ✅ 多版本修改对比
-- ✅ 上会/报批通过性评估
-- ✅ 企业对专家意见的修改回复复核
+输出 A/B/C 分级缺陷清单与通过性三档结论，支持：
+- 专篇诊断、审查、校稿
+- 专家意见落实核查
+- 多版本修改对比
+- 上会/报批通过性评估
+- 企业对专家意见的修改回复复核
 
 ## 核心特性
 
@@ -53,13 +53,15 @@
 
 ```
 chem-safety-design-review/
-├── SKILL.md                          # 主入口:方法论/强制工序/十步流程/红线
+├── SKILL.md                          # 主入口：方法论/强制工序/十步流程/红线
 ├── scripts/
-│   └── weknora_probe.sh              # 证据层探测+三层检索封装 (source 复用)
+│   ├── weknora_probe.sh              # 证据层探测+三层检索封装（source 复用）
+│   ├── build_report.py               # Word 报告生成器（python-docx，输出单个 .docx）
+│   └── report_schema.json            # 示例数据结构（可复制后填写）
 └── references/
     ├── regulation-index.md           # 150本标准索引+检索封装+时效核查
     ├── checklist-completeness.md     # AQ3066+39号导则并轨章节完整性
-    ├── standard-anchors.md           # 10类设施标准锚点 (含真实条款值)
+    ├── standard-anchors.md           # 10类设施标准锚点（含真实条款值）
     ├── calc-cards.md                 # 7张计算复核公式卡
     └── output-templates.md           # 12套输出模板→通过性三档结论
 ```
@@ -68,17 +70,19 @@ chem-safety-design-review/
 
 ### 环境配置
 
-可选配置环境变量以启用 L1/L2 证据层 (不配置则自动降级到 L3):
+可选配置环境变量以启用 L1/L2 证据层（不配置则自动降级到 L3）。**推荐方式**：创建技能专用配置文件 `~/.claude/chem-safety.env`，内容如下：
 
 ```bash
-# L1: WeKnora 内网规范库 (优先)
+# L1: WeKnora 内网规范库（优先）
 export WEKNORA_BASE_URL="https://your-weknora-host/api/v1"
 export WEKNORA_API_KEY="your-api-key"
-export WEKNORA_KB_IDS="kb-id-1,kb-id-2"  # 专篇相关知识库 id,逗号分隔
+export WEKNORA_KB_IDS="kb-id-1,kb-id-2"  # 专篇相关知识库 id，逗号分隔
 
-# L2: 本地规范库 (断网兜底)
+# L2: 本地规范库（断网兜底）
 export CHEM_STD_LIB="/path/to/weknora-input-v3/documents"
 ```
+
+脚本 `scripts/weknora_probe.sh` 会主动读取此文件，在非交互 shell 下也能正确加载配置。如果文件不存在，脚本会尝试从当前环境变量读取；都没有则自动降级到 L3。
 
 ### 使用示例
 
@@ -86,18 +90,23 @@ export CHEM_STD_LIB="/path/to/weknora-input-v3/documents"
 # 1. 载入证据探测与检索函数
 source scripts/weknora_probe.sh
 
-# 2. 探测证据等级 (打印 L1/L2/L3 并导出 EVIDENCE_LEVEL)
+# 2. 探测证据等级（打印 L1/L2/L3 并导出 EVIDENCE_LEVEL）
 chem_probe
-# 输出: 本次证据等级: L1
+# 输出示例: 本次证据等级: L1 / 配置来源: /c/Users/Admin/.claude/chem-safety.env
 
 # 3. 按当前证据等级检索标准条款
 chem_search "GBT50493 探测器 水平距离 释放源"
 
-# 4. 开始专篇诊断 (遵循 SKILL.md 十步工作流)
+# 4. 开始专篇诊断（遵循 SKILL.md 十步工作流）
 #    - 步骤4 加载 references/checklist-completeness.md
 #    - 步骤6 加载 references/standard-anchors.md
 #    - 步骤7 加载 references/calc-cards.md
-#    - 步骤10 填写 references/output-templates.md 各表
+#    - 步骤10 按 references/output-templates.md 各表填写数据到 JSON
+
+# 5. 生成单个 Word 报告
+#    把诊断数据填入 scripts/report_schema.json（可复制后修改）
+python scripts/build_report.py 诊断数据.json 诊断报告.docx
+#    产出单个 .docx，含封面、结论摘要、分项表、A/B/C 缺陷清单，用 Word 直接打开
 ```
 
 ## 主要标准依据

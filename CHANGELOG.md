@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-09-01
+
+本次改版围绕实际使用中反馈的五点意见，逐条修复。
+
+### Fixed
+
+- **修复配置在非交互 shell 下读不到、误判"本机未配置"而降到 L3 的问题**（最严重）。根因：技能调用 Bash 时用的是非交互 shell，不会读取 `~/.bashrc`，所以即使用户已经在 shell 启动文件里配了 `WEKNORA_BASE_URL` 等变量，脚本也拿不到，于是每次都误判为无配置、直接降级到 L3。解决办法：新增技能专用配置文件 `~/.claude/chem-safety.env`，让 `scripts/weknora_probe.sh` 在运行时主动去读它，不再依赖 shell 启动文件。
+- `chem_search` 增加自愈：当证据等级还没探测（`EVIDENCE_LEVEL` 为空）时，先自动跑一次 `chem_probe`，不再直接掉到 L3。
+
+### Added
+
+- **新增单文件 Word 报告生成器** `scripts/build_report.py`（基于本机已装的 python-docx）。输入一个结构化 JSON，输出**单个 `.docx`**：含封面、通过性结论摘要、各分项表、A/B/C 缺陷清单；表格带边框和表头底色，A/B/C 三级用不同颜色加粗区分，正文用宋体。本机已装 Word，可直接打开。
+- **新增示例数据** `scripts/report_schema.json`，字段与各输出模板对应，可复制后填写。
+- **新增技能专用配置文件** `~/.claude/chem-safety.env`，集中放 4 个可配置变量，供脚本主动读取。
+
+### Changed
+
+- **输出表增加"专篇原文摘录（页码/位置）"列**。此前输出只描述问题和意见，无法核对；现在每条缺陷都要先摆专篇原文（带页码或表号），再给问题定性与依据。定位不到原文的缺陷不成立。涉及模板 1、3、4、5、6、10。
+- **正文全部改为简体中文、把话说清楚**。删掉了表情符号和夹杂的英文行话；把"甲＋乙＋丙→丁"这种把多个概念压成一长串的写法，拆成正常的中文句子，把因果和先后关系写明白。技术物理量、单位、标准号、化学品名、以及 WeKnora/DCS/SIS/SIL 等已成行业固定术语的英文缩写（首次出现给中文全称）保留。信息不删减，只是展开讲清楚。
+- **去掉"依赖未安装的 weknora skill"的表述**。本机并没有独立的 weknora skill，实际检索走的是内置的 `wk_api`/`wk_search`/`wk_hybrid` 直连 WeKnora 接口。文档改为以直连为主路径，"若环境另装了 weknora skill 亦可委托"作为一句可选说明。
+
 ## [1.0.0] - 2026-09-01
 
 ### Added
@@ -56,5 +77,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 自动化脚本: pandoc 批量落盘/表格全量导出/图片提取
 - 多版本修改对比工具脚本 (问题映射表自动生成)
 
-[1.0.0]: https://github.com/your-org/chem-safety-design-review/releases/tag/v1.0.0
-[Unreleased]: https://github.com/your-org/chem-safety-design-review/compare/v1.0.0...HEAD
+[1.1.0]: https://github.com/jonathanwong0086/chem-safety-design-review/releases/tag/v1.1.0
+[1.0.0]: https://github.com/jonathanwong0086/chem-safety-design-review/releases/tag/v1.0.0
+[Unreleased]: https://github.com/jonathanwong0086/chem-safety-design-review/compare/v1.1.0...HEAD
