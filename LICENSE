@@ -1,0 +1,39 @@
+MIT License
+
+Copyright (c) 2026 chem-safety-design-review contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+DISCLAIMER / 免责声明:
+
+This software is provided as a diagnostic aid for reviewing chemical construction
+project safety facility design special chapters. It does NOT replace the professional
+judgment of qualified registered safety engineers or chemical engineers.
+
+本软件仅作专篇评审辅助诊断,不替代具有相应资质的注册安全工程师/化工工程师
+的专业判断。诊断结论应由具备执业资格的专业人员复核确认后方可用于正式评审意见。
+
+The authors and contributors assume no liability for decisions made based on
+the output of this software. Users are solely responsible for verifying all
+findings against current standards and regulations.
+
+作者与贡献者对基于本软件输出做出的决策不承担责任。用户须自行负责将所有发现
+对照现行标准法规进行核实。

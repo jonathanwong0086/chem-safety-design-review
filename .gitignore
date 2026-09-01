@@ -1,0 +1,59 @@
+# Git 忽略规则
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# 编辑器与 IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# 诊断工作目录（用户实际诊断时产生的临时文件）
+/work/
+/output/
+/temp/
+*.log
+*.tmp
+
+# 专篇文档（不纳入版本控制，用户自带）
+*.docx
+*.doc
+*.pdf
+*.dwg
+*.dxf
+
+# 规范库本地副本（用户自行配置路径，不纳入仓库）
+/local-standards/
+/weknora-input-*/
+
+# 环境配置（用户私有凭证）
+.env
+.env.local
+config.local.sh
+
+# Python 相关（若后续加 Python 脚本）
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+ENV/
+
+# 测试与覆盖率
+/test-output/
+coverage/
+*.cover
+.pytest_cache/
