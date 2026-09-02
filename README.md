@@ -56,15 +56,18 @@ chem-safety-design-review/
 ├── SKILL.md                          # 主入口：方法论/强制工序/十一步流程/红线
 ├── scripts/
 │   ├── weknora_probe.sh              # 证据层探测+三层检索封装（source 复用）
-│   └── merge_md_to_docx.py           # 分章 md 文档组按索引合并成单个 .docx
+│   ├── merge_md_to_docx.py           # 分章 md 文档组按索引合并成单个 .docx
+│   └── build_calc_workbook.py        # 由 JSON 生成"活公式"计算复核 .xlsx
 ├── examples/
-│   └── report-sample/                # 报告文档组示例（索引+5章md）
+│   ├── report-sample/                # 报告文档组示例（索引+5章md）
+│   ├── calc-input-sample.json        # 计算复核输入示例（脱敏占位）
+│   └── 计算复核-示例.xlsx             # 由上示例生成的活公式工作簿
 └── references/
     ├── regulation-index.md           # 150本标准索引+检索封装+时效核查
     ├── checklist-completeness.md     # AQ3066+39号导则并轨章节完整性
-    ├── standard-anchors.md           # 10类设施标准锚点（含真实条款值）
-    ├── calc-cards.md                 # 7张计算复核公式卡
-    └── output-templates.md           # 输出模板→通过性三档结论
+    ├── standard-anchors.md           # 设施标准锚点+法定名录穿透与定性一致性
+    ├── calc-cards.md                 # 计算复核公式卡（含重大危险源辨识/分级）
+    └── output-templates.md           # 输出模板→程序性否决门→通过性三档结论
 ```
 
 ## 快速开始
@@ -117,6 +120,10 @@ chem_search "GBT50493 探测器 水平距离 释放源"
 #    参照 examples/report-sample/ 组织文档组（00-索引.md + 各章 md）
 python scripts/merge_md_to_docx.py 你的目录/00-索引.md 诊断报告.docx
 #    产出单个 .docx，含封面、各章内容、A/B/C 缺陷分色，用 Word 直接打开
+
+# 6.（可选）生成"活公式"计算复核工作簿：黄格填输入，公式自动重算并对比文档值
+#    参照 examples/calc-input-sample.json 组织输入；--demo 可直接出样例
+python scripts/build_calc_workbook.py 你的复核输入.json 计算复核.xlsx
 ```
 
 ## 主要标准依据
