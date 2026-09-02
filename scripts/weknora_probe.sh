@@ -29,6 +29,12 @@
 # ---------- 配置加载：主动读取配置文件，解决非交互 shell 读不到变量的问题 ----------
 CHEM_CONFIG_SOURCE=""   # 记录配置从哪来，供 chem_probe 打印排障
 _chem_load_config() {
+  # 幂等守卫：已经判定过配置来源就不再重复判断。
+  # （否则第二次调用时变量已被第一次填上，会被误标成“已有环境变量”，
+  #  把“其实是从文件读的”这个事实盖掉，造成排障时的误导。）
+  if [ -n "$CHEM_CONFIG_SOURCE" ]; then
+    return 0
+  fi
   local candidates f
   # 优先级：显式指定 > 用户级 > 技能目录随附
   candidates="$CHEM_SAFETY_ENV
@@ -40,7 +46,8 @@ $HOME/.claude/chem-safety.env"
     [ -n "$here" ] && candidates="$candidates
 $here/chem-safety.env"
   fi
-  # 如果关键变量已在当前环境里（比如用户手动 export 过），就不覆盖，只标注来源
+  # 如果关键变量在首次加载时就已经存在（比如用户在当前会话手动 export 过），
+  # 就不覆盖，只标注来源。这个判断只在第一次调用时做，之后被上面的守卫拦住。
   if [ -n "$WEKNORA_BASE_URL" ] && [ -n "$WEKNORA_API_KEY" ]; then
     CHEM_CONFIG_SOURCE="已有环境变量（未加载配置文件）"
     return 0

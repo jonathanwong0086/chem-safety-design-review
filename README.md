@@ -43,9 +43,9 @@
 - **M6**: 评审标尺事前声明 (否决项判定阈值/证据等级)
 - **M7**: 问题映射与颗粒度 (多版本对比输出"问题映射表")
 
-### 十步工作流
+### 十一步工作流
 
-1. **预处理落盘** → 2. **文种定性与属地** → 3. **证据层探测** → 4. **章节完整性对照** → 5. **危险辨识复核＋设施映射** → 6. **逐类设施符合性** → 7. **可计算项重算** → 8. **数据闭环＋图文一致** → 9. **意见三段闭环** → 10. **A/B/C 分级输出**
+1. **预处理落盘** → 2. **文种定性与属地** → 3. **证据层探测** → 4. **章节完整性对照** → 5. **危险辨识复核＋设施映射** → 6. **逐类设施符合性** → 7. **可计算项重算** → 8. **数据闭环＋图文一致** → 9. **错别字与标点专项审查** → 10. **意见三段闭环** → 11. **分章 md 合并成单个 docx 输出**
 
 每步标注【输入/动作/产出/留痕】,步骤 4/6/7 按需加载对应 reference。
 
@@ -53,17 +53,18 @@
 
 ```
 chem-safety-design-review/
-├── SKILL.md                          # 主入口：方法论/强制工序/十步流程/红线
+├── SKILL.md                          # 主入口：方法论/强制工序/十一步流程/红线
 ├── scripts/
 │   ├── weknora_probe.sh              # 证据层探测+三层检索封装（source 复用）
-│   ├── build_report.py               # Word 报告生成器（python-docx，输出单个 .docx）
-│   └── report_schema.json            # 示例数据结构（可复制后填写）
+│   └── merge_md_to_docx.py           # 分章 md 文档组按索引合并成单个 .docx
+├── examples/
+│   └── report-sample/                # 报告文档组示例（索引+5章md）
 └── references/
     ├── regulation-index.md           # 150本标准索引+检索封装+时效核查
     ├── checklist-completeness.md     # AQ3066+39号导则并轨章节完整性
     ├── standard-anchors.md           # 10类设施标准锚点（含真实条款值）
     ├── calc-cards.md                 # 7张计算复核公式卡
-    └── output-templates.md           # 12套输出模板→通过性三档结论
+    └── output-templates.md           # 输出模板→通过性三档结论
 ```
 
 ## 快速开始
@@ -97,16 +98,17 @@ chem_probe
 # 3. 按当前证据等级检索标准条款
 chem_search "GBT50493 探测器 水平距离 释放源"
 
-# 4. 开始专篇诊断（遵循 SKILL.md 十步工作流）
+# 4. 开始专篇诊断（遵循 SKILL.md 十一步工作流）
 #    - 步骤4 加载 references/checklist-completeness.md
 #    - 步骤6 加载 references/standard-anchors.md
 #    - 步骤7 加载 references/calc-cards.md
-#    - 步骤10 按 references/output-templates.md 各表填写数据到 JSON
+#    - 步骤9 错别字与标点专项审查
+#    - 步骤11 按 references/output-templates.md 各表写成分章 md 文档组
 
-# 5. 生成单个 Word 报告
-#    把诊断数据填入 scripts/report_schema.json（可复制后修改）
-python scripts/build_report.py 诊断数据.json 诊断报告.docx
-#    产出单个 .docx，含封面、结论摘要、分项表、A/B/C 缺陷清单，用 Word 直接打开
+# 5. 把分章 md 合并成单个 Word 报告
+#    参照 examples/report-sample/ 组织文档组（00-索引.md + 各章 md）
+python scripts/merge_md_to_docx.py 你的目录/00-索引.md 诊断报告.docx
+#    产出单个 .docx，含封面、各章内容、A/B/C 缺陷分色，用 Word 直接打开
 ```
 
 ## 主要标准依据

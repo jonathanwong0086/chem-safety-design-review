@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-09-02
+
+本次改版针对第二轮反馈的四点，逐条落实。
+
+### Fixed
+
+- **修复 `chem_probe` 误报配置来源的问题**。深挖"连不上"问题时确证：WeKnora 其实是通的（本机 Docker 里 `WeKnora-app` 跑在 8080、`WeKnora-frontend` 跑在 8090，带 API key 打 `knowledge-bases` 返回 200，知识库"规范库"4509 条真实存在，端到端检索能返回条款原文）。真正的坑是脚本的一句误导性提示：干净环境下明明是从配置文件加载的，`chem_probe` 却打印"配置来源：已有环境变量（未加载配置文件）"。根因是 `_chem_load_config` 被调用两次，第二次运行时变量已被第一次填上，于是误走"已有环境变量"分支，把"其实从文件读的"这个事实盖掉。现加幂等守卫：判定过来源就不再翻案。这正是上一轮让人误判"没生效、连不上"的元凶。
+
+### Changed
+
+- **输出流程改为"分章 markdown 文档组 + 索引 → 合并成单个 docx"**。诊断的每一类产出写成一个单独的、可读可改的 markdown 文件，再配一个索引文件（顶部 `键：值` 块提供封面信息，正文按顺序列出各章文件名）。合并脚本按索引顺序拼接、排版成一个 Word 文档。markdown 文档组作为可读中间产物保留，docx 为最终交付，仍然只有一个文件。
+- **专篇诊断工作流从十步扩为十一步**，在数据闭环之后新增"错别字与标点专项审查"一步。
+
+### Added
+
+- **新增 `scripts/merge_md_to_docx.py`**：零额外依赖（只用已装的 python-docx，本机无 pandoc/libreoffice），自带轻量 markdown 解析。支持标题、管道表格、列表、引用、加粗；表格带边框和表头底色、表头跨页重复；缺陷表按 A/B/C 自动分色；章间自动分页；封面由索引信息生成。
+- **新增示例文档组 `examples/report-sample/`**：一个索引文件加五章 md，演示文档组结构与最终合并效果。
+- **错别字与标点符号专项审查**（针对受审专篇正文）：核对同音形近错别字、术语用字规范、中英文标点混用、书名号括号配对、标准号和文号的字符级校对、单位符号规范。`references/output-templates.md` 增"错别字与标点问题清单"模板（模板5B），一般归 C 类，改变技术含义（标准号错字、小数点错位、单位缺失）升 B 类，结果并入 A/B/C 缺陷清单。
+
+### Removed
+
+- 移除 `scripts/build_report.py` 与 `scripts/report_schema.json`（1.1.0 的 JSON→docx 路径），由上面的 markdown 文档组路径取代。
+
 ## [1.1.0] - 2026-09-01
 
 本次改版围绕实际使用中反馈的五点意见，逐条修复。
@@ -77,6 +100,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 自动化脚本: pandoc 批量落盘/表格全量导出/图片提取
 - 多版本修改对比工具脚本 (问题映射表自动生成)
 
+[1.2.0]: https://github.com/jonathanwong0086/chem-safety-design-review/releases/tag/v1.2.0
 [1.1.0]: https://github.com/jonathanwong0086/chem-safety-design-review/releases/tag/v1.1.0
 [1.0.0]: https://github.com/jonathanwong0086/chem-safety-design-review/releases/tag/v1.0.0
-[Unreleased]: https://github.com/jonathanwong0086/chem-safety-design-review/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/jonathanwong0086/chem-safety-design-review/compare/v1.2.0...HEAD
