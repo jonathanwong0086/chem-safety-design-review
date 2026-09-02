@@ -71,7 +71,14 @@ chem-safety-design-review/
 
 ### 环境配置
 
-可选配置环境变量以启用 L1/L2 证据层（不配置则自动降级到 L3）。**推荐方式**：创建技能专用配置文件 `~/.claude/chem-safety.env`，内容如下：
+可选配置环境变量以启用 L1/L2 证据层（不配置则自动降级到 L3）。**推荐方式**：source 脚本后用内置的 `chem_config_init` 写配置（会按正确引用写进 `~/.claude/chem-safety.env`，`chmod 600`，并立即在当前会话生效）：
+
+```bash
+source ~/.claude/skills/chem-safety-design-review/scripts/weknora_probe.sh
+chem_config_init "https://your-weknora-host/api/v1" "your-api-key" "kb-id-1,kb-id-2" "/path/to/weknora-input-v3/documents"
+```
+
+四个参数依次是：WeKnora base_url、API key、知识库 id（逗号分隔）、本地规范库 documents 目录。也可以手工把这四行写进 `~/.claude/chem-safety.env`（效果相同）：
 
 ```bash
 # L1: WeKnora 内网规范库（优先）
@@ -88,12 +95,13 @@ export CHEM_STD_LIB="/path/to/weknora-input-v3/documents"
 ### 使用示例
 
 ```bash
-# 1. 载入证据探测与检索函数
-source scripts/weknora_probe.sh
+# 1. 载入证据探测与检索函数（务必用绝对路径 source，不要用相对路径）
+source ~/.claude/skills/chem-safety-design-review/scripts/weknora_probe.sh
 
-# 2. 探测证据等级（打印 L1/L2/L3 并导出 EVIDENCE_LEVEL）
+# 2. 探测证据等级（打印 L1/L2/L3 并导出 EVIDENCE_LEVEL，同时脱敏回显当前配置）
 chem_probe
 # 输出示例: 本次证据等级: L1 / 配置来源: /c/Users/Admin/.claude/chem-safety.env
+#           WEKNORA_API_KEY=sk-diF…dvJE （key 打码，仅显首尾）
 
 # 3. 按当前证据等级检索标准条款
 chem_search "GBT50493 探测器 水平距离 释放源"

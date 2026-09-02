@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-09-02
+
+本次改版专门解决"另一个会话连不上 WeKnora"的根因——相对路径 source 失败，以及配置变量的写入与回读缺环。
+
+### Fixed
+
+- **修复相对路径 source 导致的静默失败**。此前文档示例用 `source scripts/weknora_probe.sh`，只在当前目录恰好是技能目录时才成立。一旦在别的项目目录里调用，相对路径找不到脚本、函数根本没载入，`chem_probe`/`chem_search` 不存在，于是被误读成"连不上 WeKnora"，进而去翻找 MCP 连接器、裸 curl 8080/8090（必然 401）。这就是"另一个会话连不上"的真正原因。现全部文档改用绝对路径 `source ~/.claude/skills/chem-safety-design-review/scripts/weknora_probe.sh`。
+
+### Added
+
+- **`chem_config_init` 配置写入函数**：source 脚本后一条命令即可把四个变量按正确 shell 引用写进 `~/.claude/chem-safety.env`，自动 `mkdir -p`、`chmod 600`，并立即 export 到当前会话。解决"怎么写变量"的问题，不必手工编辑文件、也不会写错引用。
+- **`chem_probe` 脱敏回显**：探测时除证据等级外，额外打印"配置来源"（读到了哪个文件）和一份脱敏摘要——base_url、知识库 id、本地库路径全显，API key 打码只显首尾（如 `sk-diF…dvJE`）。解决"怎么读变量、怎么确认真的配上了"的问题，既可核对又不泄密。
+- **直接执行防呆**：若被 `bash weknora_probe.sh` 直接执行（而非 source），脚本明确报错并非零退出，提示改用 source——因为直接执行时函数只活在子进程里，调用方拿不到。
+
+### Changed
+
+- SKILL.md〇章与 README.md 快速开始统一改用绝对路径 source，并补充"本技能不依赖 MCP、不要裸 curl 端口"的说明、`chem_config_init` 用法、以及"如何确认配置生效"（看 `chem_probe` 的脱敏摘要）。
+
 ## [1.2.0] - 2026-09-02
 
 本次改版针对第二轮反馈的四点，逐条落实。
@@ -100,7 +118,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 自动化脚本: pandoc 批量落盘/表格全量导出/图片提取
 - 多版本修改对比工具脚本 (问题映射表自动生成)
 
+[1.2.1]: https://github.com/jonathanwong0086/chem-safety-design-review/releases/tag/v1.2.1
 [1.2.0]: https://github.com/jonathanwong0086/chem-safety-design-review/releases/tag/v1.2.0
 [1.1.0]: https://github.com/jonathanwong0086/chem-safety-design-review/releases/tag/v1.1.0
 [1.0.0]: https://github.com/jonathanwong0086/chem-safety-design-review/releases/tag/v1.0.0
-[Unreleased]: https://github.com/jonathanwong0086/chem-safety-design-review/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/jonathanwong0086/chem-safety-design-review/compare/v1.2.1...HEAD

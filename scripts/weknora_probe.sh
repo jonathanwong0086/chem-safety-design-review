@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
 # weknora_probe.sh — 证据层探测 + 三层检索封装（步骤3/6/7 复用）
 #
-# 用法（务必在同一个 shell 会话里连续调用）：
-#   source scripts/weknora_probe.sh          # 载入函数并自动加载配置文件
+# 用法（务必用 source、且在同一个 shell 会话里连续调用；建议用绝对路径，
+#       这样不管当前在哪个目录都能载入）：
+#   source ~/.claude/skills/chem-safety-design-review/scripts/weknora_probe.sh
 #   chem_probe                               # 探测证据等级，打印并导出 EVIDENCE_LEVEL
 #   chem_search "GBT50493 探测器 水平距离"     # 按当前证据等级自动检索
+#
+# 首次配置凭证（把 4 个变量写进 ~/.claude/chem-safety.env 并收紧权限）：
+#   chem_config_init "http://主机:端口/api/v1" "sk-你的密钥" "知识库id1,知识库id2" "本地规范库路径"
+#
+# 不要绕开本脚本：本技能不依赖 MCP，也不要去裸 curl 8080/8090（不带 key 必然 401）。
+# 标准检索一律先 source 本脚本，再调用 chem_search。
 #
 # 重要：source、chem_probe、chem_search 必须在同一个 shell 会话内先后执行。
 #       如果分开在不同命令里跑，导出的 EVIDENCE_LEVEL 不会保留。为防误判，
@@ -25,6 +32,17 @@
 #   CHEM_STD_LIB      本地规范库 documents 目录路径（L2 断网兜底用）
 #
 # 证据出处可追溯：L1 给 knowledge_title#chunk_index；L2 给 文件路径:行号；L3 标 [需复核,内置锚点卡]
+
+# ---------- 防呆：必须用 source，不能直接执行 ----------
+# 如果是 `bash weknora_probe.sh` 直接跑的，函数只活在子进程里，调用方会话拿不到，
+# 会出现“跑了却没生效”的假象（这正是踩过的坑）。此时明确报错并退出。
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+  echo "错误：本脚本必须用 source 载入，不能直接执行。" >&2
+  echo "请改用（建议绝对路径）：" >&2
+  echo "  source ~/.claude/skills/chem-safety-design-review/scripts/weknora_probe.sh" >&2
+  echo "  chem_probe && chem_search \"你的检索词\"" >&2
+  exit 1
+fi
 
 # ---------- 配置加载：主动读取配置文件，解决非交互 shell 读不到变量的问题 ----------
 CHEM_CONFIG_SOURCE=""   # 记录配置从哪来，供 chem_probe 打印排障
@@ -68,6 +86,49 @@ EOF
 }
 _chem_load_config
 
+# ---------- 脱敏：给密钥打码，只显首尾，避免明文泄露 ----------
+_chem_mask() {  # 参数：待打码的字符串
+  local s="$1" n
+  n=${#s}
+  if [ "$n" -le 12 ]; then
+    # 太短就只显首尾各 2 位
+    printf '%s…%s' "${s:0:2}" "${s: -2}"
+  else
+    printf '%s…%s' "${s:0:6}" "${s: -4}"
+  fi
+}
+
+# ---------- 写入配置：把 4 个变量写进 ~/.claude/chem-safety.env 并收紧权限 ----------
+chem_config_init() {  # 参数：base_url api_key kb_ids [std_lib]
+  if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+    echo "用法：chem_config_init <base_url> <api_key> <kb_ids> [std_lib]" >&2
+    echo "  例：chem_config_init \"http://192.168.0.43:8090/api/v1\" \"sk-xxx\" \"kb-id1,kb-id2\" \"D:/路径/documents\"" >&2
+    return 1
+  fi
+  local cfg="$HOME/.claude/chem-safety.env"
+  mkdir -p "$HOME/.claude"
+  # 值用双引号包好，防止路径或密钥里的特殊字符出问题
+  {
+    echo "# chem-safety-design-review 技能配置"
+    echo "# 由 chem_config_init 生成，供 weknora_probe.sh 主动读取，不依赖 shell 启动文件。"
+    echo "export WEKNORA_BASE_URL=\"$1\""
+    echo "export WEKNORA_API_KEY=\"$2\""
+    echo "export WEKNORA_KB_IDS=\"$3\""
+    [ -n "$4" ] && echo "export CHEM_STD_LIB=\"$4\""
+  } > "$cfg"
+  chmod 600 "$cfg" 2>/dev/null
+  # 同时写进当前会话，立刻生效
+  export WEKNORA_BASE_URL="$1" WEKNORA_API_KEY="$2" WEKNORA_KB_IDS="$3"
+  [ -n "$4" ] && export CHEM_STD_LIB="$4"
+  CHEM_CONFIG_SOURCE="$cfg"
+  echo "已写入配置：$cfg（权限 600）"
+  echo "  WEKNORA_BASE_URL=$1"
+  echo "  WEKNORA_API_KEY=$(_chem_mask "$2")"
+  echo "  WEKNORA_KB_IDS=$3"
+  [ -n "$4" ] && echo "  CHEM_STD_LIB=$4"
+  echo "现在可直接运行 chem_probe 验证。"
+}
+
 # ---------- L1：WeKnora 接口直连封装 ----------
 # 本技能直接调用 WeKnora 接口检索（无需另装独立的 weknora 技能）。
 # 如果环境里另外装了 weknora 技能，也可以改用它，但不是必需的。
@@ -106,6 +167,12 @@ chem_probe() {
   export EVIDENCE_LEVEL
   echo "本次证据等级：$EVIDENCE_LEVEL"
   echo "配置来源：$CHEM_CONFIG_SOURCE"
+  # 脱敏回读摘要：确认配置确实加载上了，但密钥只显首尾，不明文泄露
+  echo "当前配置（密钥已打码）："
+  echo "  WEKNORA_BASE_URL=${WEKNORA_BASE_URL:-（空）}"
+  echo "  WEKNORA_API_KEY=$( [ -n "$WEKNORA_API_KEY" ] && _chem_mask "$WEKNORA_API_KEY" || echo '（空）')"
+  echo "  WEKNORA_KB_IDS=${WEKNORA_KB_IDS:-（空）}"
+  echo "  CHEM_STD_LIB=${CHEM_STD_LIB:-（空）}"
   if [ "$EVIDENCE_LEVEL" = "L1" ] && [ -z "$WEKNORA_KB_IDS" ]; then
     echo "提示：未设 WEKNORA_KB_IDS，先列可用知识库供选择：" >&2
     wk_api GET "knowledge-bases" >&2

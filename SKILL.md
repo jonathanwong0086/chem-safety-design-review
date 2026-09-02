@@ -32,18 +32,28 @@ description: 化工建设项目"安全设施设计专篇"的专家级评审诊�
 | **L2** | 本地规范库全文检索（对同一批标准的 md 文件做全文搜索） | 只有当 L1 完全用不了（断网或没凭证）时才启用 | 高 |
 | **L3** | 本技能内置的锚点卡 [references/standard-anchors.md](references/standard-anchors.md) | L1、L2 都用不了 | 兜底（数值一律标 `[需复核]`） |
 
-**探测怎么做**：探测和三层检索都封装进了可复用脚本 [scripts/weknora_probe.sh](scripts/weknora_probe.sh)，直接 source 调用即可，不用每次照抄命令。
+**探测怎么做**：探测和三层检索都封装进了可复用脚本 [scripts/weknora_probe.sh](scripts/weknora_probe.sh)，直接 source 调用即可，不用每次照抄命令。**用绝对路径 source**，这样不管当前在哪个目录都能载入（这条很重要，见下面第一条注意）：
 
 ```bash
-source scripts/weknora_probe.sh   # 载入函数，并自动加载配置
-chem_probe                        # 探测，打印证据等级（L1/L2/L3）并导出
+source ~/.claude/skills/chem-safety-design-review/scripts/weknora_probe.sh   # 载入函数并自动加载配置
+chem_probe                        # 探测，打印证据等级（L1/L2/L3）并导出，同时脱敏回显当前配置
 chem_search "GBT50493 探测器 水平距离"   # 按当前证据等级自动检索
 ```
 
-**注意两件事**：
+**注意三件事**：
 
+- **一律用绝对路径 source，不要用相对路径**。写成 `source scripts/weknora_probe.sh` 只在当前目录恰好是技能目录时才成立；一旦在别的目录（比如另一个项目里）调用，相对路径会静默失败——函数没载入，`chem_probe`/`chem_search` 根本不存在，就会误以为"连不上 WeKnora"而去瞎找 MCP 连接器或裸 curl 端口。这正是踩过的坑。所以固定用上面的绝对路径。脚本还加了防呆：如果被 `bash weknora_probe.sh` 直接执行（而非 source），会明确报错并退出，因为那样函数只活在子进程里，调用方拿不到。
+- **本技能不依赖 MCP，也不要去裸 curl 8080/8090**。检索的唯一正确路径就是：先 source 本脚本，再调用 `chem_search`。不带 key 直接打接口端口必然返回 401；WeKnora 是否配了 MCP 连接器与本技能无关。
 - 上面三条命令必须在**同一个 shell 会话**里连续执行。因为 `EVIDENCE_LEVEL` 是导出到当前会话的，分开跑就丢了。为防误判，`chem_search` 在没探测过时会自动先跑一次探测。
-- **凭证放在配置文件里，不要指望 `~/.bashrc`**。本技能跑命令用的是非交互 shell，它不读 `~/.bashrc`。脚本会主动去读配置文件，查找顺序是：环境变量 `CHEM_SAFETY_ENV` 指向的文件 → `~/.claude/chem-safety.env` → 技能目录随附的 `chem-safety.env`。把下面四个变量写进 `~/.claude/chem-safety.env` 即可：
+
+**凭证怎么配（不要指望 `~/.bashrc`）**：本技能跑命令用的是非交互 shell，它不读 `~/.bashrc`。脚本会主动去读配置文件，查找顺序是：环境变量 `CHEM_SAFETY_ENV` 指向的文件 → `~/.claude/chem-safety.env` → 技能目录随附的 `chem-safety.env`。首次配置最省事的办法是 source 脚本后调用内置的写入函数（会把四个变量按正确引用写进 `~/.claude/chem-safety.env`，`chmod 600` 收紧权限，并立即在当前会话生效）：
+
+```bash
+source ~/.claude/skills/chem-safety-design-review/scripts/weknora_probe.sh
+chem_config_init "http://主机:端口/api/v1" "sk-你的密钥" "知识库id1,知识库id2" "本地规范库 documents 目录路径"
+```
+
+也可以手工把这四行写进 `~/.claude/chem-safety.env`（效果相同）：
 
 ```bash
 export WEKNORA_BASE_URL="http://主机:端口/api/v1"
@@ -51,6 +61,8 @@ export WEKNORA_API_KEY="sk-你的密钥"
 export WEKNORA_KB_IDS="知识库id1,知识库id2"
 export CHEM_STD_LIB="本地规范库 documents 目录的路径"
 ```
+
+**怎么确认配置真的生效**：跑 `chem_probe`。它除了打印证据等级，还会打印"配置来源"（读到了哪个文件）和一份脱敏摘要——base_url、知识库 id、本地库路径都全显，只有 API key 打码（只显首尾，如 `sk-diF…dvJE`），既能确认确实配上了，又不会明文泄露密钥。
 
 脚本内部的判断逻辑：先看 `WEKNORA_BASE_URL` 和 `WEKNORA_API_KEY` 配了没、接口连不连得通，通了就是 L1；不通再看 `CHEM_STD_LIB` 目录在不在，在就是 L2；都不行就 L3。L1 情况下如果没设 `WEKNORA_KB_IDS`，脚本会自动列出可用知识库让你选。L3 情况下会打印待复核警告。
 
